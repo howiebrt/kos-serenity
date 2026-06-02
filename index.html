@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pendaftaran Kos Serenity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --green-dark: #1a3a2a;
+  --green-mid: #1a6b3a;
+  --green-light: #a8d5b5;
+  --green-pale: #f0f8f2;
+  --green-border: #9fcfab;
+  --text: #1a1a1a;
+  --text-muted: #6b7280;
+  --border: #e5e7eb;
+  --bg: #f5f5f0;
+  --white: #ffffff;
+  --yellow-bg: #fef9e7;
+  --yellow-border: #f0c040;
+  --yellow-text: #b8860b;
+  --red: #e24b4a;
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 2rem 1rem 4rem;
+}
+
+.container { max-width: 620px; margin: 0 auto; }
+
+.header {
+  background: var(--green-dark);
+  border-radius: var(--radius);
+  padding: 1.75rem 2rem;
+  margin-bottom: 1.25rem;
+}
+.header h1 { color: var(--green-light); font-size: 24px; font-weight: 600; letter-spacing: -0.3px; }
+.header p { color: #6aaa80; font-size: 14px; margin-top: 4px; }
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 10px;
+  border-radius: 20px;
+  margin-left: 8px;
+  vertical-align: middle;
+  font-weight: 500;
+}
+.badge-loading { background: rgba(255,255,255,0.15); color: #aaa; }
+.badge-ok { background: #2d6b3a; color: #a8d5b5; }
+.badge-err { background: #7f1d1d; color: #fca5a5; }
+
+.section {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+.section-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 1.25rem;
+}
+
+.field { margin-bottom: 1rem; }
+.field:last-child { margin-bottom: 0; }
+.field label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 6px; font-weight: 500; }
+.req { color: var(--red); }
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  color: var(--text);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus { border-color: var(--green-mid); }
+.field textarea { height: 80px; resize: vertical; }
+.field select { cursor: pointer; }
+
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 480px) { .row { grid-template-columns: 1fr; } }
+
+.upload-area {
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  background: #fafafa;
+  position: relative;
+  transition: border-color 0.15s, background 0.15s;
+}
+.upload-area:hover { border-color: var(--green-mid); background: var(--green-pale); }
+.upload-area input[type=file] {
+  position: absolute; inset: 0; opacity: 0;
+  cursor: pointer; width: 100%; height: 100%;
+}
+.upload-icon { font-size: 28px; margin-bottom: 6px; }
+.upload-area p { font-size: 13px; color: var(--text-muted); }
+.upload-area .hint { font-size: 11px; color: #9ca3af; margin-top: 4px; }
+.fname { font-size: 12px; color: var(--green-mid); margin-top: 6px; font-weight: 500; display: none; }
+
+.kamar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+.kamar-btn {
+  padding: 9px 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+  color: var(--text);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  transition: all 0.1s;
+  position: relative;
+}
+.kamar-btn:hover:not([disabled]) { border-color: var(--green-mid); color: var(--green-mid); background: var(--green-pale); }
+.kamar-btn.selected { background: var(--green-dark); color: var(--green-light); border-color: var(--green-dark); }
+.kamar-btn.occupied { background: #f3f4f6; color: #d1d5db; cursor: not-allowed; text-decoration: line-through; }
+.kamar-btn.pending { background: var(--yellow-bg); color: var(--yellow-text); border-color: var(--yellow-border); cursor: not-allowed; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+.dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+.sel-info { font-size: 13px; color: var(--text-muted); margin-top: 10px; min-height: 20px; }
+.sel-info strong { color: var(--green-mid); }
+
+.price-box {
+  background: #f9fafb;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem 1.25rem;
+  margin-top: 1rem;
+  display: none;
+}
+.price-box.show { display: block; }
+.price-row {
+  display: flex; justify-content: space-between;
+  font-size: 13px; color: var(--text-muted);
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+.price-total { display: flex; justify-content: space-between; align-items: center; padding-top: 2px; }
+.price-total .label { font-size: 13px; font-weight: 600; color: var(--text); }
+.price-total .amount { font-size: 22px; font-weight: 600; color: var(--green-mid); }
+
+.bank-info {
+  background: var(--green-pale);
+  border: 1px solid var(--green-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  margin-top: 12px;
+}
+.bank-info .bank-label { font-size: 12px; color: #2d6b3a; margin-bottom: 4px; }
+.bank-info .norek { font-size: 20px; font-weight: 600; color: #1a4a28; letter-spacing: 2px; }
+.bank-info .atas-nama { font-size: 13px; color: #2d6b3a; margin-top: 4px; }
+
+.checkbox-row { display: flex; align-items: flex-start; gap: 10px; }
+.checkbox-row input[type=checkbox] {
+  width: 16px; height: 16px; margin-top: 2px;
+  flex-shrink: 0; accent-color: var(--green-mid); cursor: pointer;
+}
+.checkbox-row label { font-size: 13px; color: var(--text-muted); line-height: 1.6; cursor: pointer; }
+
+.loading-bar {
+  text-align: center; padding: 10px;
+  font-size: 13px; color: var(--text-muted);
+  display: none;
+}
+.progress { height: 3px; background: var(--border); border-radius: 2px; margin-top: 6px; overflow: hidden; display: none; }
+.progress-fill { height: 100%; background: var(--green-mid); border-radius: 2px; transition: width 0.4s; }
+
+.submit-btn {
+  width: 100%;
+  padding: 13px;
+  background: var(--green-dark);
+  color: var(--green-light);
+  border: none;
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  margin-top: 0.5rem;
+  transition: background 0.15s, transform 0.1s;
+}
+.submit-btn:hover:not([disabled]) { background: #0f2a1c; }
+.submit-btn:active:not([disabled]) { transform: scale(0.99); }
+.submit-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.success-box {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 3rem 2rem;
+  text-align: center;
+  display: none;
+}
+.success-icon { font-size: 52px; margin-bottom: 1rem; }
+.success-box h2 { font-size: 20px; font-weight: 600; color: var(--green-dark); margin-bottom: 8px; }
+.success-box p { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+.success-detail {
+  background: var(--green-pale);
+  border: 1px solid var(--green-border);
+  border-radius: var(--radius-sm);
+  padding: 1rem 1.25rem;
+  margin-top: 1.5rem;
+  text-align: left;
+}
+.success-detail p { font-size: 13px; color: #2d6b3a; line-height: 1.8; }
+
+.footer {
+  text-align: center;
+  margin-top: 2rem;
+  font-size: 12px;
+  color: #9ca3af;
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <h1>Kos Serenity <span class="badge badge-loading" id="connBadge">memuat...</span></h1>
+  <p>Formulir pendaftaran penghuni baru · Surabaya</p>
+</div>
+
+<div id="mainForm">
+
+  <div class="section">
+    <p class="section-title">Data diri</p>
+    <div class="row">
+      <div class="field">
+        <label>Nama lengkap <span class="req">*</span></label>
+        <input type="text" id="nama" placeholder="Sesuai KTP" autocomplete="name">
+      </div>
+      <div class="field">
+        <label>No. WhatsApp <span class="req">*</span></label>
+        <input type="tel" id="wa" placeholder="08xxxxxxxxxx" autocomplete="tel">
+      </div>
+    </div>
+    <div class="field">
+      <label>Alamat asal <span class="req">*</span></label>
+      <textarea id="alamat" placeholder="Alamat lengkap sesuai KTP"></textarea>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>No. KTP / NIK <span class="req">*</span></label>
+        <input type="text" id="ktp" placeholder="16 digit NIK" maxlength="16" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>Status pekerjaan</label>
+        <select id="status">
+          <option value="">-- Pilih --</option>
+          <option>Pelajar / Mahasiswa</option>
+          <option>Karyawan</option>
+          <option>Wirausaha</option>
+          <option>Lainnya</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="section-title">Upload foto KTP</p>
+    <div class="upload-area" id="ktpArea">
+      <input type="file" accept="image/*,.pdf" id="ktpFile" onchange="handleFile('ktpFile','ktpName')">
+      <div class="upload-icon">🪪</div>
+      <p>Klik untuk upload foto KTP</p>
+      <p class="hint">JPG, PNG, atau PDF · Maks 5MB</p>
+      <p class="fname" id="ktpName"></p>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="section-title">Pilih kamar</p>
+    <div class="kamar-grid" id="kamarGrid">
+      <p style="font-size:13px;color:var(--text-muted);grid-column:1/-1">Memuat data kamar...</p>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="dot" style="background:var(--green-dark)"></div>Dipilih</div>
+      <div class="legend-item"><div class="dot" style="border:1px solid var(--border)"></div>Tersedia</div>
+      <div class="legend-item"><div class="dot" style="background:var(--yellow-bg);border:1px solid var(--yellow-border)"></div>Pending</div>
+      <div class="legend-item"><div class="dot" style="background:#f3f4f6"></div>Terisi</div>
+    </div>
+    <div class="sel-info" id="selInfo"></div>
+  </div>
+
+  <div class="section">
+    <p class="section-title">Durasi sewa</p>
+    <div class="field">
+      <label>Pilih durasi <span class="req">*</span></label>
+      <select id="durasi" onchange="hitungHarga()">
+        <option value="">-- Pilih durasi --</option>
+        <option value="1">1 bulan</option>
+        <option value="2">2 bulan</option>
+        <option value="3">3 bulan</option>
+        <option value="6">6 bulan</option>
+        <option value="12">12 bulan (1 tahun)</option>
+      </select>
+    </div>
+    <div class="price-box" id="priceBox">
+      <div class="price-row">
+        <span id="priceLabel">Harga kamar</span>
+        <span id="pricePerBulan"></span>
+      </div>
+      <div class="price-total">
+        <span class="label">Total yang ditransfer</span>
+        <span class="amount" id="priceTotal"></span>
+      </div>
+      <div class="bank-info">
+        <p class="bank-label">Transfer ke rekening BCA</p>
+        <p class="norek">0887249591</p>
+        <p class="atas-nama">a.n. <strong>Howard</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="section-title">Bukti transfer</p>
+    <div class="upload-area" id="tfArea">
+      <input type="file" accept="image/*,.pdf" id="tfFile" onchange="handleFile('tfFile','tfName')">
+      <div class="upload-icon">🧾</div>
+      <p>Klik untuk upload bukti transfer</p>
+      <p class="hint">JPG, PNG, atau PDF · Maks 5MB</p>
+      <p class="fname" id="tfName"></p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="checkbox-row">
+      <input type="checkbox" id="setuju">
+      <label for="setuju">Saya menyatakan bahwa data yang saya isi adalah benar dan saya menyetujui peraturan yang berlaku di Kos Serenity.</label>
+    </div>
+  </div>
+
+  <div class="loading-bar" id="loadingBar">
+    <span id="loadingText">Mengirim data...</span>
+    <div class="progress" id="progressBar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+
+  <button class="submit-btn" id="submitBtn" onclick="submitForm()">Kirim Pendaftaran</button>
+
+</div>
+
+<div class="success-box" id="successBox">
+  <div class="success-icon">✅</div>
+  <h2>Pendaftaran berhasil dikirim!</h2>
+  <p>Data kamu sudah kami terima dan sedang dalam proses verifikasi pembayaran.</p>
+  <div class="success-detail" id="successDetail"></div>
+  <p style="margin-top:1.25rem;font-size:13px;">Konfirmasi akan dikirim via WhatsApp dalam 1×24 jam kerja.</p>
+</div>
+
+<div class="footer">Kos Serenity · Surabaya</div>
+</div>
+
+<script>
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwM31zOnlHuLBRQtWSEyiNJKKjx2V_NYdGl9LnH1zIHV6_FiuH5wjvZdh5dlDBGXiZv/exec';
+
+const kamarBase = [];
+for(let i=1;i<=4;i++) kamarBase.push({no:i,harga:1800000});
+for(let i=5;i<=15;i++) kamarBase.push({no:i,harga:1700000});
+for(let i=16;i<=30;i++) kamarBase.push({no:i,harga:1500000});
+for(let i=31;i<=32;i++) kamarBase.push({no:i,harga:2200000});
+
+let selectedKamar = null;
+let kamarStatus = {};
+
+function fmt(n){ return 'Rp ' + Math.round(n).toLocaleString('id-ID'); }
+
+async function loadKamarStatus() {
+  try {
+    const res = await fetch(SCRIPT_URL + '?action=getKamarStatus');
+    const data = await res.json();
+    if(data.status === 'success') {
+      kamarStatus = data.kamar;
+      document.getElementById('connBadge').textContent = 'live';
+      document.getElementById('connBadge').className = 'badge badge-ok';
+    } else { throw new Error(); }
+  } catch(e) {
+    document.getElementById('connBadge').textContent = 'offline';
+    document.getElementById('connBadge').className = 'badge badge-err';
+  }
+  buildGrid();
+}
+
+function buildGrid() {
+  const grid = document.getElementById('kamarGrid');
+  grid.innerHTML = '';
+  kamarBase.forEach(k => {
+    const st = (kamarStatus[k.no] || 'Tersedia');
+    const btn = document.createElement('button');
+    let cls = 'kamar-btn';
+    if(st === 'Terisi') cls += ' occupied';
+    else if(st === 'Pending') cls += ' pending';
+    btn.className = cls;
+    btn.textContent = k.no;
+    btn.title = fmt(k.harga) + '/bulan' + (st !== 'Tersedia' ? ' · ' + st : '');
+    btn.disabled = st !== 'Tersedia';
+    btn.type = 'button';
+    btn.onclick = () => selectKamar(k.no, btn, k.harga);
+    grid.appendChild(btn);
+  });
+}
+
+function selectKamar(no, btn, harga) {
+  document.querySelectorAll('.kamar-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedKamar = {no, harga};
+  document.getElementById('selInfo').innerHTML =
+    'Kamar <strong>' + no + '</strong> dipilih &nbsp;·&nbsp; <strong>' + fmt(harga) + '/bulan</strong>';
+  hitungHarga();
+}
+
+function hitungHarga() {
+  if(!selectedKamar) return;
+  const durasi = parseInt(document.getElementById('durasi').value);
+  if(!durasi) return;
+  const total = selectedKamar.harga * durasi;
+  document.getElementById('priceLabel').textContent = 'Kamar ' + selectedKamar.no + ' × ' + durasi + ' bulan';
+  document.getElementById('pricePerBulan').textContent = fmt(selectedKamar.harga) + '/bln';
+  document.getElementById('priceTotal').textContent = fmt(total);
+  document.getElementById('priceBox').classList.add('show');
+}
+
+function handleFile(inputId, nameId) {
+  const f = document.getElementById(inputId).files[0];
+  const el = document.getElementById(nameId);
+  if(f){ el.textContent = '✓ ' + f.name; el.style.display = 'block'; }
+}
+
+function setProgress(pct, text) {
+  document.getElementById('loadingText').textContent = text;
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+async function uploadFileToDrive(inputId, prefix) {
+  const file = document.getElementById(inputId).files[0];
+  if(!file) return '';
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = e.target.result.split(',')[1];
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'uploadFile',
+            fileName: prefix + '_' + file.name,
+            mimeType: file.type,
+            fileData: base64
+          })
+        });
+        const data = await res.json();
+        resolve(data.fileUrl || '');
+      } catch(e) { resolve(''); }
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function submitForm() {
+  const nama = document.getElementById('nama').value.trim();
+  const wa = document.getElementById('wa').value.trim();
+  const alamat = document.getElementById('alamat').value.trim();
+  const ktp = document.getElementById('ktp').value.trim();
+  const durasi = parseInt(document.getElementById('durasi').value);
+  const setuju = document.getElementById('setuju').checked;
+
+  if(!nama) { alert('Nama lengkap wajib diisi.'); return; }
+  if(!wa) { alert('No. WhatsApp wajib diisi.'); return; }
+  if(!alamat) { alert('Alamat wajib diisi.'); return; }
+  if(!ktp || ktp.length < 16) { alert('No. KTP harus 16 digit.'); return; }
+  if(!selectedKamar) { alert('Pilih kamar terlebih dahulu.'); return; }
+  if(!durasi) { alert('Pilih durasi sewa.'); return; }
+  if(!setuju) { alert('Centang persetujuan terlebih dahulu.'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  const loadingBar = document.getElementById('loadingBar');
+  const progressBar = document.getElementById('progressBar');
+  btn.disabled = true;
+  loadingBar.style.display = 'block';
+  progressBar.style.display = 'block';
+
+  setProgress(10, 'Upload foto KTP...');
+  const safeNama = nama.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'');
+  const linkKtp = await uploadFileToDrive('ktpFile', 'KTP_' + safeNama);
+
+  setProgress(45, 'Upload bukti transfer...');
+  const linkTransfer = await uploadFileToDrive('tfFile', 'Transfer_' + safeNama);
+
+  setProgress(75, 'Menyimpan data ke sistem...');
+  const total = selectedKamar.harga * durasi;
+
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'submit',
+        nama, wa, alamat,
+        noKtp: ktp,
+        statusPekerjaan: document.getElementById('status').value || '-',
+        kamar: selectedKamar.no,
+        hargaPerBulan: selectedKamar.harga,
+        durasi, total,
+        linkKtp: linkKtp || '-',
+        linkBuktiTransfer: linkTransfer || '-'
+      })
+    });
+    const data = await res.json();
+    setProgress(100, 'Selesai!');
+
+    if(data.status === 'success') {
+      setTimeout(() => {
+        document.getElementById('mainForm').style.display = 'none';
+        document.getElementById('successDetail').innerHTML =
+          '<p>📋 <strong>Nama:</strong> ' + nama + '<br>' +
+          '🛏️ <strong>Kamar:</strong> ' + selectedKamar.no + '<br>' +
+          '📅 <strong>Durasi:</strong> ' + durasi + ' bulan<br>' +
+          '💰 <strong>Total:</strong> ' + fmt(total) + '</p>';
+        document.getElementById('successBox').style.display = 'block';
+        window.scrollTo({top:0, behavior:'smooth'});
+      }, 500);
+    } else {
+      alert('Gagal menyimpan data: ' + (data.message || 'Unknown error'));
+      btn.disabled = false;
+      loadingBar.style.display = 'none';
+    }
+  } catch(err) {
+    alert('Koneksi gagal. Periksa internet dan coba lagi.');
+    btn.disabled = false;
+    loadingBar.style.display = 'none';
+  }
+}
+
+loadKamarStatus();
+</script>
+</body>
+</html>
