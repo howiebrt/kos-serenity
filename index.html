@@ -385,7 +385,7 @@ body {
 </div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwM31zOnlHuLBRQtWSEyiNJKKjx2V_NYdGl9LnH1zIHV6_FiuH5wjvZdh5dlDBGXiZv/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzcx73u7YeOQK_CbIEyhigTXIWSCm9f1vV4dGk39rKrz1cP_7u1DhXpVWRh2BgYohaK/exec';
 
 const kamarBase = [];
 for(let i=1;i<=4;i++) kamarBase.push({no:i,harga:1800000});
@@ -398,20 +398,41 @@ let kamarStatus = {};
 
 function fmt(n){ return 'Rp ' + Math.round(n).toLocaleString('id-ID'); }
 
-async function loadKamarStatus() {
-  try {
-    const res = await fetch(SCRIPT_URL + '?action=getKamarStatus');
-    const data = await res.json();
-    if(data.status === 'success') {
-      kamarStatus = data.kamar;
-      document.getElementById('connBadge').textContent = 'live';
-      document.getElementById('connBadge').className = 'badge badge-ok';
-    } else { throw new Error(); }
-  } catch(e) {
-    document.getElementById('connBadge').textContent = 'offline';
-    document.getElementById('connBadge').className = 'badge badge-err';
-  }
-  buildGrid();
+function loadKamarStatus() {
+  return new Promise((resolve) => {
+    const cbName = 'cb_' + Date.now();
+    window[cbName] = function(data) {
+      try {
+        if(data.status === 'success') {
+          kamarStatus = data.kamar;
+          document.getElementById('connBadge').textContent = 'live';
+          document.getElementById('connBadge').className = 'badge badge-ok';
+        } else { throw new Error(); }
+      } catch(e) {
+        document.getElementById('connBadge').textContent = 'offline';
+        document.getElementById('connBadge').className = 'badge badge-err';
+      }
+      delete window[cbName];
+      document.getElementById('jsonpScript') && document.getElementById('jsonpScript').remove();
+      buildGrid();
+      resolve();
+    };
+    const s = document.createElement('script');
+    s.id = 'jsonpScript';
+    s.src = SCRIPT_URL + '?action=getKamarStatus&callback=' + cbName;
+    s.onerror = () => {
+      document.getElementById('connBadge').textContent = 'offline';
+      document.getElementById('connBadge').className = 'badge badge-err';
+      buildGrid();
+      resolve();
+    };
+    document.body.appendChild(s);
+    setTimeout(() => {
+      if(window[cbName]) {
+        window[cbName]({status:'error'});
+      }
+    }, 8000);
+  });
 }
 
 function buildGrid() {
