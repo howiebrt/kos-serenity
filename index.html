@@ -144,7 +144,7 @@ body {
 }
 .kamar-btn:hover:not([disabled]) { border-color: var(--green-mid); color: var(--green-mid); background: var(--green-pale); }
 .kamar-btn.selected { background: var(--green-dark); color: var(--green-light); border-color: var(--green-dark); }
-.kamar-btn.occupied { background: #f3f4f6; color: #d1d5db; cursor: not-allowed; text-decoration: line-through; }
+.kamar-btn.occupied { background: #fde2ec; color: #c2255c; border-color: #f5a3c0; cursor: not-allowed; text-decoration: line-through; }
 .kamar-btn.pending { background: var(--yellow-bg); color: var(--yellow-text); border-color: var(--yellow-border); cursor: not-allowed; }
 
 .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; }
@@ -269,9 +269,15 @@ body {
         <input type="tel" id="wa" placeholder="08xxxxxxxxxx" autocomplete="tel">
       </div>
     </div>
-    <div class="field">
-      <label>Alamat asal <span class="req">*</span></label>
-      <textarea id="alamat" placeholder="Alamat lengkap sesuai KTP"></textarea>
+    <div class="row">
+      <div class="field">
+        <label>No. telp keluarga <span class="req">*</span></label>
+        <input type="tel" id="telpKeluarga" placeholder="Kontak darurat keluarga">
+      </div>
+      <div class="field">
+        <label>Alamat asal <span class="req">*</span></label>
+        <input type="text" id="alamat" placeholder="Alamat sesuai KTP">
+      </div>
     </div>
     <div class="row">
       <div class="field">
@@ -304,14 +310,22 @@ body {
 
   <div class="section">
     <p class="section-title">Pilih kamar</p>
+    <div class="field">
+      <label>Kos cowok atau cewek? <span class="req">*</span></label>
+      <select id="gender" onchange="onGenderChange()">
+        <option value="">-- Pilih --</option>
+        <option value="Cowok">Kos Cowok</option>
+        <option value="Cewek">Kos Cewek</option>
+      </select>
+    </div>
     <div class="kamar-grid" id="kamarGrid">
-      <p style="font-size:13px;color:var(--text-muted);grid-column:1/-1">Memuat data kamar...</p>
+      <p style="font-size:13px;color:var(--text-muted);grid-column:1/-1">Pilih kos cowok/cewek dulu untuk melihat kamar.</p>
     </div>
     <div class="legend">
       <div class="legend-item"><div class="dot" style="background:var(--green-dark)"></div>Dipilih</div>
       <div class="legend-item"><div class="dot" style="border:1px solid var(--border)"></div>Tersedia</div>
       <div class="legend-item"><div class="dot" style="background:var(--yellow-bg);border:1px solid var(--yellow-border)"></div>Pending</div>
-      <div class="legend-item"><div class="dot" style="background:#f3f4f6"></div>Terisi</div>
+      <div class="legend-item"><div class="dot" style="background:#fde2ec;border:1px solid #f5a3c0"></div>Terisi</div>
     </div>
     <div class="sel-info" id="selInfo"></div>
   </div>
@@ -324,9 +338,9 @@ body {
         <option value="">-- Pilih durasi --</option>
         <option value="1">1 bulan</option>
         <option value="2">2 bulan</option>
-        <option value="3">3 bulan</option>
+        <option value="3">3 bulan (diskon Rp 50.000)</option>
         <option value="6">6 bulan</option>
-        <option value="12">12 bulan (1 tahun)</option>
+        <option value="12">12 bulan (diskon Rp 1.000.000)</option>
       </select>
     </div>
     <div class="price-box" id="priceBox">
@@ -334,14 +348,18 @@ body {
         <span id="priceLabel">Harga kamar</span>
         <span id="pricePerBulan"></span>
       </div>
+      <div class="price-row" id="diskonRow" style="display:none;color:#1a6b3a">
+        <span id="diskonLabel">Diskon</span>
+        <span id="diskonAmount"></span>
+      </div>
       <div class="price-total">
         <span class="label">Total yang ditransfer</span>
         <span class="amount" id="priceTotal"></span>
       </div>
       <div class="bank-info">
         <p class="bank-label">Transfer ke rekening BCA</p>
-        <p class="norek">0887249591</p>
-        <p class="atas-nama">a.n. <strong>Howard</strong></p>
+        <p class="norek">0884873459</p>
+        <p class="atas-nama">a.n. <strong>Indah Megawati Kusala</strong></p>
       </div>
     </div>
   </div>
@@ -388,15 +406,26 @@ body {
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzJzIJ6mZZ-055YYbUXPFZ4d3TMqAIrauwGYXikFeI2UH1Af_hDFtpPMBpPPqpGkjWx/exec';
 
 const kamarBase = [];
-for(let i=1;i<=4;i++) kamarBase.push({no:i,harga:1800000});
-for(let i=5;i<=15;i++) kamarBase.push({no:i,harga:1700000});
-for(let i=16;i<=30;i++) kamarBase.push({no:i,harga:1500000});
-for(let i=31;i<=32;i++) kamarBase.push({no:i,harga:2200000});
+function hargaFor(no){
+  if(no <= 2) return 1800000;
+  if(no <= 11) return 1600000;
+  return 2200000;
+}
+for(let i=1;i<=15;i++) kamarBase.push({no:i, harga:hargaFor(i)});
 
 let selectedKamar = null;
 let kamarStatus = {};
+let selectedGender = '';
 
 function fmt(n){ return 'Rp ' + Math.round(n).toLocaleString('id-ID'); }
+
+function onGenderChange() {
+  selectedGender = document.getElementById('gender').value;
+  selectedKamar = null;
+  document.getElementById('selInfo').innerHTML = '';
+  document.getElementById('priceBox').classList.remove('show');
+  buildGrid();
+}
 
 function loadKamarStatus() {
   return new Promise((resolve) => {
@@ -438,8 +467,13 @@ function loadKamarStatus() {
 function buildGrid() {
   const grid = document.getElementById('kamarGrid');
   grid.innerHTML = '';
+  if(!selectedGender) {
+    grid.innerHTML = '<p style="font-size:13px;color:var(--text-muted);grid-column:1/-1">Pilih kos cowok/cewek dulu untuk melihat kamar.</p>';
+    return;
+  }
   kamarBase.forEach(k => {
-    const st = (kamarStatus[k.no] || 'Tersedia');
+    const kamarId = selectedGender + '-' + k.no;
+    const st = (kamarStatus[kamarId] || 'Tersedia');
     const btn = document.createElement('button');
     let cls = 'kamar-btn';
     if(st === 'Terisi') cls += ' occupied';
@@ -449,27 +483,46 @@ function buildGrid() {
     btn.title = fmt(k.harga) + '/bulan' + (st !== 'Tersedia' ? ' · ' + st : '');
     btn.disabled = st !== 'Tersedia';
     btn.type = 'button';
-    btn.onclick = () => selectKamar(k.no, btn, k.harga);
+    btn.onclick = () => selectKamar(kamarId, k.no, btn, k.harga);
     grid.appendChild(btn);
   });
 }
 
-function selectKamar(no, btn, harga) {
+function selectKamar(kamarId, no, btn, harga) {
   document.querySelectorAll('.kamar-btn').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
-  selectedKamar = {no, harga};
+  selectedKamar = {id: kamarId, no, harga};
   document.getElementById('selInfo').innerHTML =
-    'Kamar <strong>' + no + '</strong> dipilih &nbsp;·&nbsp; <strong>' + fmt(harga) + '/bulan</strong>';
+    'Kamar <strong>' + selectedGender + ' ' + no + '</strong> dipilih &nbsp;·&nbsp; <strong>' + fmt(harga) + '/bulan</strong>';
   hitungHarga();
+}
+
+function getDiskon(durasi) {
+  if(durasi === 3) return 50000;
+  if(durasi === 12) return 1000000;
+  return 0;
 }
 
 function hitungHarga() {
   if(!selectedKamar) return;
   const durasi = parseInt(document.getElementById('durasi').value);
   if(!durasi) return;
-  const total = selectedKamar.harga * durasi;
-  document.getElementById('priceLabel').textContent = 'Kamar ' + selectedKamar.no + ' × ' + durasi + ' bulan';
-  document.getElementById('pricePerBulan').textContent = fmt(selectedKamar.harga) + '/bln';
+  const subtotal = selectedKamar.harga * durasi;
+  const diskon = getDiskon(durasi);
+  const total = subtotal - diskon;
+
+  document.getElementById('priceLabel').textContent = 'Kamar ' + selectedGender + ' ' + selectedKamar.no + ' × ' + durasi + ' bulan';
+  document.getElementById('pricePerBulan').textContent = fmt(subtotal);
+
+  const diskonRow = document.getElementById('diskonRow');
+  if(diskon > 0) {
+    document.getElementById('diskonLabel').textContent = 'Diskon ' + durasi + ' bulan';
+    document.getElementById('diskonAmount').textContent = '− ' + fmt(diskon);
+    diskonRow.style.display = 'flex';
+  } else {
+    diskonRow.style.display = 'none';
+  }
+
   document.getElementById('priceTotal').textContent = fmt(total);
   document.getElementById('priceBox').classList.add('show');
 }
@@ -513,6 +566,7 @@ async function uploadFileToDrive(inputId, prefix) {
 async function submitForm() {
   const nama = document.getElementById('nama').value.trim();
   const wa = document.getElementById('wa').value.trim();
+  const telpKeluarga = document.getElementById('telpKeluarga').value.trim();
   const alamat = document.getElementById('alamat').value.trim();
   const ktp = document.getElementById('ktp').value.trim();
   const durasi = parseInt(document.getElementById('durasi').value);
@@ -520,8 +574,10 @@ async function submitForm() {
 
   if(!nama) { alert('Nama lengkap wajib diisi.'); return; }
   if(!wa) { alert('No. WhatsApp wajib diisi.'); return; }
+  if(!telpKeluarga) { alert('No. telp keluarga wajib diisi.'); return; }
   if(!alamat) { alert('Alamat wajib diisi.'); return; }
   if(!ktp || ktp.length < 16) { alert('No. KTP harus 16 digit.'); return; }
+  if(!selectedGender) { alert('Pilih kos cowok/cewek dulu.'); return; }
   if(!selectedKamar) { alert('Pilih kamar terlebih dahulu.'); return; }
   if(!durasi) { alert('Pilih durasi sewa.'); return; }
   if(!setuju) { alert('Centang persetujuan terlebih dahulu.'); return; }
@@ -541,19 +597,20 @@ async function submitForm() {
   const linkTransfer = await uploadFileToDrive('tfFile', 'Transfer_' + safeNama);
 
   setProgress(75, 'Menyimpan data ke sistem...');
-  const total = selectedKamar.harga * durasi;
+  const diskon = getDiskon(durasi);
+  const total = (selectedKamar.harga * durasi) - diskon;
 
   try {
     const res = await fetch(SCRIPT_URL, {
       method: 'POST',
       body: JSON.stringify({
         action: 'submit',
-        nama, wa, alamat,
+        nama, wa, telpKeluarga, alamat,
         noKtp: ktp,
         statusPekerjaan: document.getElementById('status').value || '-',
-        kamar: selectedKamar.no,
+        kamar: selectedKamar.id,
         hargaPerBulan: selectedKamar.harga,
-        durasi, total,
+        durasi, diskon, total,
         linkKtp: linkKtp || '-',
         linkBuktiTransfer: linkTransfer || '-'
       })
@@ -566,7 +623,7 @@ async function submitForm() {
         document.getElementById('mainForm').style.display = 'none';
         document.getElementById('successDetail').innerHTML =
           '<p>📋 <strong>Nama:</strong> ' + nama + '<br>' +
-          '🛏️ <strong>Kamar:</strong> ' + selectedKamar.no + '<br>' +
+          '🛏️ <strong>Kamar:</strong> ' + selectedKamar.id + '<br>' +
           '📅 <strong>Durasi:</strong> ' + durasi + ' bulan<br>' +
           '💰 <strong>Total:</strong> ' + fmt(total) + '</p>';
         document.getElementById('successBox').style.display = 'block';
