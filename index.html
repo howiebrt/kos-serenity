@@ -331,16 +331,17 @@ body {
   </div>
 
   <div class="section">
-    <p class="section-title">Durasi sewa</p>
+    <p class="section-title">Booking atau sewa</p>
     <div class="field">
       <label>Pilih durasi <span class="req">*</span></label>
       <select id="durasi" onchange="hitungHarga()">
-        <option value="">-- Pilih durasi --</option>
-        <option value="1">1 bulan</option>
-        <option value="2">2 bulan</option>
-        <option value="3">3 bulan (diskon Rp 50.000)</option>
-        <option value="6">6 bulan</option>
-        <option value="12">12 bulan (diskon Rp 1.000.000)</option>
+        <option value="">-- Pilih --</option>
+        <option value="booking">Booking dulu (DP Rp 500.000)</option>
+        <option value="1">Sewa 1 bulan</option>
+        <option value="2">Sewa 2 bulan</option>
+        <option value="3">Sewa 3 bulan (diskon Rp 50.000)</option>
+        <option value="6">Sewa 6 bulan</option>
+        <option value="12">Sewa 12 bulan (diskon Rp 1.000.000)</option>
       </select>
     </div>
     <div class="price-box" id="priceBox">
@@ -353,8 +354,12 @@ body {
         <span id="diskonAmount"></span>
       </div>
       <div class="price-total">
-        <span class="label">Total yang ditransfer</span>
+        <span class="label" id="totalLabel">Total yang ditransfer</span>
         <span class="amount" id="priceTotal"></span>
+      </div>
+      <div class="price-row" id="kekuranganRow" style="display:none;color:#c2255c;border-bottom:none;margin-top:6px;padding-top:8px;border-top:1px solid var(--border)">
+        <span>Sisa kekurangan (bayar saat masuk)</span>
+        <span id="kekuranganAmount"></span>
       </div>
       <div class="bank-info">
         <p class="bank-label">Transfer ke rekening BCA</p>
@@ -503,10 +508,31 @@ function getDiskon(durasi) {
   return 0;
 }
 
+const BOOKING_DP = 500000;
+
 function hitungHarga() {
   if(!selectedKamar) return;
-  const durasi = parseInt(document.getElementById('durasi').value);
-  if(!durasi) return;
+  const val = document.getElementById('durasi').value;
+  if(!val) return;
+
+  const diskonRow = document.getElementById('diskonRow');
+  const kekuranganRow = document.getElementById('kekuranganRow');
+
+  if(val === 'booking') {
+    // Booking: bayar DP 500rb, dihitung sewa 1 bulan, kekurangan = harga 1 bulan - 500rb
+    const kekurangan = selectedKamar.harga - BOOKING_DP;
+    document.getElementById('priceLabel').textContent = 'Booking Kamar ' + selectedGender + ' ' + selectedKamar.no;
+    document.getElementById('pricePerBulan').textContent = 'DP ' + fmt(BOOKING_DP);
+    diskonRow.style.display = 'none';
+    document.getElementById('totalLabel').textContent = 'Bayar sekarang (DP)';
+    document.getElementById('priceTotal').textContent = fmt(BOOKING_DP);
+    document.getElementById('kekuranganAmount').textContent = fmt(kekurangan);
+    kekuranganRow.style.display = 'flex';
+    document.getElementById('priceBox').classList.add('show');
+    return;
+  }
+
+  const durasi = parseInt(val);
   const subtotal = selectedKamar.harga * durasi;
   const diskon = getDiskon(durasi);
   const total = subtotal - diskon;
@@ -514,7 +540,6 @@ function hitungHarga() {
   document.getElementById('priceLabel').textContent = 'Kamar ' + selectedGender + ' ' + selectedKamar.no + ' × ' + durasi + ' bulan';
   document.getElementById('pricePerBulan').textContent = fmt(subtotal);
 
-  const diskonRow = document.getElementById('diskonRow');
   if(diskon > 0) {
     document.getElementById('diskonLabel').textContent = 'Diskon ' + durasi + ' bulan';
     document.getElementById('diskonAmount').textContent = '− ' + fmt(diskon);
@@ -523,7 +548,9 @@ function hitungHarga() {
     diskonRow.style.display = 'none';
   }
 
+  document.getElementById('totalLabel').textContent = 'Total yang ditransfer';
   document.getElementById('priceTotal').textContent = fmt(total);
+  kekuranganRow.style.display = 'none';
   document.getElementById('priceBox').classList.add('show');
 }
 
@@ -569,7 +596,7 @@ async function submitForm() {
   const telpKeluarga = document.getElementById('telpKeluarga').value.trim();
   const alamat = document.getElementById('alamat').value.trim();
   const ktp = document.getElementById('ktp').value.trim();
-  const durasi = parseInt(document.getElementById('durasi').value);
+  const durasiVal = document.getElementById('durasi').value;
   const setuju = document.getElementById('setuju').checked;
 
   if(!nama) { alert('Nama lengkap wajib diisi.'); return; }
@@ -579,7 +606,7 @@ async function submitForm() {
   if(!ktp || ktp.length < 16) { alert('No. KTP harus 16 digit.'); return; }
   if(!selectedGender) { alert('Pilih kos cowok/cewek dulu.'); return; }
   if(!selectedKamar) { alert('Pilih kamar terlebih dahulu.'); return; }
-  if(!durasi) { alert('Pilih durasi sewa.'); return; }
+  if(!durasiVal) { alert('Pilih booking atau durasi sewa.'); return; }
   if(!document.getElementById('ktpFile').files[0]) { alert('Upload foto KTP terlebih dahulu.'); return; }
   if(!document.getElementById('tfFile').files[0]) { alert('Upload bukti transfer terlebih dahulu.'); return; }
   if(!setuju) { alert('Centang persetujuan terlebih dahulu.'); return; }
@@ -599,8 +626,22 @@ async function submitForm() {
   const linkTransfer = await uploadFileToDrive('tfFile', 'Transfer_' + safeNama);
 
   setProgress(75, 'Menyimpan data ke sistem...');
-  const diskon = getDiskon(durasi);
-  const total = (selectedKamar.harga * durasi) - diskon;
+
+  // Tentukan tipe, durasi, total, kekurangan
+  let tipe, durasi, diskon, total, kekurangan;
+  if(durasiVal === 'booking') {
+    tipe = 'Booking';
+    durasi = 1;                                  // booking dihitung sewa 1 bulan
+    diskon = 0;
+    total = BOOKING_DP;                          // bayar 500rb
+    kekurangan = selectedKamar.harga - BOOKING_DP;
+  } else {
+    tipe = 'Sewa';
+    durasi = parseInt(durasiVal);
+    diskon = getDiskon(durasi);
+    total = (selectedKamar.harga * durasi) - diskon;
+    kekurangan = 0;
+  }
 
   try {
     const res = await fetch(SCRIPT_URL, {
@@ -611,8 +652,9 @@ async function submitForm() {
         noKtp: ktp,
         statusPekerjaan: document.getElementById('status').value || '-',
         kamar: selectedKamar.id,
+        tipe,
         hargaPerBulan: selectedKamar.harga,
-        durasi, diskon, total,
+        durasi, diskon, total, kekurangan,
         linkKtp: linkKtp || '-',
         linkBuktiTransfer: linkTransfer || '-'
       })
@@ -623,11 +665,17 @@ async function submitForm() {
     if(data.status === 'success') {
       setTimeout(() => {
         document.getElementById('mainForm').style.display = 'none';
-        document.getElementById('successDetail').innerHTML =
-          '<p>📋 <strong>Nama:</strong> ' + nama + '<br>' +
-          '🛏️ <strong>Kamar:</strong> ' + selectedKamar.id + '<br>' +
-          '📅 <strong>Durasi:</strong> ' + durasi + ' bulan<br>' +
-          '💰 <strong>Total:</strong> ' + fmt(total) + '</p>';
+        let detail = '<p>📋 <strong>Nama:</strong> ' + nama + '<br>' +
+          '🛏️ <strong>Kamar:</strong> ' + selectedKamar.id + '<br>';
+        if(tipe === 'Booking') {
+          detail += '📌 <strong>Tipe:</strong> Booking (DP)<br>' +
+            '💰 <strong>DP dibayar:</strong> ' + fmt(total) + '<br>' +
+            '🧾 <strong>Sisa kekurangan:</strong> ' + fmt(kekurangan) + ' (bayar saat masuk)</p>';
+        } else {
+          detail += '📅 <strong>Durasi:</strong> ' + durasi + ' bulan<br>' +
+            '💰 <strong>Total:</strong> ' + fmt(total) + '</p>';
+        }
+        document.getElementById('successDetail').innerHTML = detail;
         document.getElementById('successBox').style.display = 'block';
         window.scrollTo({top:0, behavior:'smooth'});
       }, 500);
