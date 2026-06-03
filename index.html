@@ -298,7 +298,7 @@ body {
   </div>
 
   <div class="section">
-    <p class="section-title">Upload foto KTP</p>
+    <p class="section-title">Upload foto KTP <span class="req">*</span></p>
     <div class="upload-area" id="ktpArea">
       <input type="file" accept="image/*,.pdf" id="ktpFile" onchange="handleFile('ktpFile','ktpName')">
       <div class="upload-icon">🪪</div>
@@ -365,7 +365,7 @@ body {
   </div>
 
   <div class="section">
-    <p class="section-title">Bukti transfer</p>
+    <p class="section-title">Bukti transfer <span class="req">*</span></p>
     <div class="upload-area" id="tfArea">
       <input type="file" accept="image/*,.pdf" id="tfFile" onchange="handleFile('tfFile','tfName')">
       <div class="upload-icon">🧾</div>
@@ -580,6 +580,8 @@ async function submitForm() {
   if(!selectedGender) { alert('Pilih kos cowok/cewek dulu.'); return; }
   if(!selectedKamar) { alert('Pilih kamar terlebih dahulu.'); return; }
   if(!durasi) { alert('Pilih durasi sewa.'); return; }
+  if(!document.getElementById('ktpFile').files[0]) { alert('Upload foto KTP terlebih dahulu.'); return; }
+  if(!document.getElementById('tfFile').files[0]) { alert('Upload bukti transfer terlebih dahulu.'); return; }
   if(!setuju) { alert('Centang persetujuan terlebih dahulu.'); return; }
 
   const btn = document.getElementById('submitBtn');
